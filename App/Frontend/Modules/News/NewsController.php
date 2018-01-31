@@ -12,11 +12,28 @@ class NewsController extends BackController
 {
   public function executeIndex(HTTPRequest $request)
   {
-
+    //je vérifie que l'index n'a pas déjà été mis en cache, sinon je le mets en cache:
+    
     $frontend_index_cache = Cache::CACHE_DIR.'/views/Frontend_News_index';
+    if(file_exists($frontend_index_cache))
+    {
+      $lines = file($frontend_index_cache);
+      $timestamp = (int)$lines[0];
+
+      if(time()>= $timestamp)
+      {
+        $this->cache()->delete($frontend_index_cache);
+      }
+    }
+    
 
     if(!file_exists($frontend_index_cache))
     {
+      $fs = fopen($frontend_index_cache, 'w');
+      $timestamp = time()+Cache::EXPIRATION;
+      fwrite($fs, $timestamp.PHP_EOL);
+      fclose($fs);
+
       $nombreNews = $this->app->config()->get('nombre_news');
       $nombreCaracteres = $this->app->config()->get('nombre_caracteres');
    
@@ -38,11 +55,14 @@ class NewsController extends BackController
           $news->setContenu($debut);
         }
       }
-      $serialized_listeNews =serialize($listeNews);
+      $serialized_listeNews = serialize($listeNews);
       $this->cache()->add($frontend_index_cache, $serialized_listeNews);
+      $lines = file($frontend_index_cache);
+      $timestamp = (int)$lines[0];
+      
     }
-
-    $listeNews = unserialize($this->cache()->read($frontend_index_cache));   
+    $listeNews = unserialize($lines[1]);
+    //$listeNews = unserialize($this->cache()->read($frontend_index_cache));   
     
     // On ajoute la variable $listeNews à la vue.
     $this->page->addVar('listeNews', $listeNews);

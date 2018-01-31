@@ -3,12 +3,12 @@ namespace OCFram;
 
 class Cache 
 {
-	const CACHE_DIR = 'C:/wamp64/www/monsiteenpoo/tmp/cache';
+	
+	protected $expirationTime;
 
-	public function __construct($duration= null, $dirname = null)
-	{
-		$this->setDuration($duration);
-	}
+	const EXPIRATION = 300; //en secondes.
+
+	const CACHE_DIR = 'C:/wamp64/www/monsiteenpoo/tmp/cache';
 
 	public function read($file)
 	{
@@ -17,7 +17,7 @@ class Cache
 
 	public function add($file, $content)
 	{
-		file_put_contents($file, $content);
+		file_put_contents($file, $content, FILE_APPEND);
 	}
 
 	public function delete($file)
@@ -28,7 +28,24 @@ class Cache
 		}
 		
 	}
+	
+	public function expirationTime()
+	{
+		return $this->expirationTime;
+	}
 
+	public function setExpirationTime($expirationTime)
+	{
+		if(is_int($expirationTime))
+		{
+			$this->expirationTime = $expirationTime;
+		}
+		
+	}
+
+}
+
+/* Cette fonction m'était utile pour débugger...
 	public function clear() 
 	{
 
@@ -46,19 +63,5 @@ class Cache
 		{
 			unlink($view);
 		}
-
 	}
-
-	public function duration()
-	{
-		return $this->duration;
-	}
-
-
-	public function setDuration($duration)
-	{
-		$this->duration = $duration;
-	}
-
-}
-
+	*/
