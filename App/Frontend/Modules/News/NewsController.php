@@ -26,7 +26,7 @@ class NewsController extends BackController
       $manager = $this->managers->getManagerOf('News');
    
       $listeNews = $manager->getList(0, $nombreNews);
-   
+      
       foreach ($listeNews as $news)
       {
         if (strlen($news->contenu()) > $nombreCaracteres)
@@ -37,12 +37,11 @@ class NewsController extends BackController
           $news->setContenu($debut);
         }
       }
-      $serialized_listeNews = serialize($listeNews);
+      $serialized_listeNews =serialize($listeNews);
       $this->cache()->add($frontend_index_cache, $serialized_listeNews);
     }
 
-    require($frontend_index_cache);
-    $listeNews = unserialize($frontend_index_cache);   
+    $listeNews = unserialize($this->cache()->read($frontend_index_cache));   
     
     // On ajoute la variable $listeNews à la vue.
     $this->page->addVar('listeNews', $listeNews);
@@ -50,7 +49,22 @@ class NewsController extends BackController
  
   public function executeShow(HTTPRequest $request)
   {
-    $news = $this->managers->getManagerOf('News')->getUnique($request->getData('id'));
+    $news_cache = 'C:/wamp64/www/monsiteenpoo/tmp/cache/datas/news-'.$request->getData('id');
+    $comments_cache = 'C:wamp64/www/monsiteenpoo/tmp/cache/datas/comments-'.$request->getData('id');
+
+    if(!file_exists($news_cache) || !file_exists($comments_cache))
+    {
+      $news = $this->managers->getManagerOf('News')->getUnique($request->getData('id'));
+      $serialized_news = serialize($news);
+      $this->cache()->add($news_cache, $serialized_news);
+
+      $comments = $this->managers->getManagerOf('Comments')->getListOf($news->id());
+      $serialized_comments = serialize($comments);
+      $this->cache()->add($comments_cache, $serialized_comments);
+    }
+    
+    $news = unserialize($this->cache()->read($news_cache));
+    $comments = unserialize($this->cache()->read($comments_cache));
  
     if (empty($news))
     {
@@ -59,7 +73,7 @@ class NewsController extends BackController
  
     $this->page->addVar('title', $news->titre());
     $this->page->addVar('news', $news);
-    $this->page->addVar('comments', $this->managers->getManagerOf('Comments')->getListOf($news->id()));
+    $this->page->addVar('comments', $comments);
   }
  
   public function executeInsertComment(HTTPRequest $request)
