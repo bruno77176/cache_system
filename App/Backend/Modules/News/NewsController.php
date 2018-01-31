@@ -8,11 +8,13 @@ use \Entity\Comment;
 use \FormBuilder\CommentFormBuilder;
 use \FormBuilder\NewsFormBuilder;
 use \OCFram\FormHandler;
+use \OCFram\Cache;
 
 class NewsController extends BackController
 {
   public function executeDelete(HTTPRequest $request)
   {
+    $this->cache()->clear();
     $newsId = $request->getData('id');
     
     $this->managers->getManagerOf('News')->delete($newsId);
@@ -25,6 +27,7 @@ class NewsController extends BackController
 
   public function executeDeleteComment(HTTPRequest $request)
   {
+    $this->cache()->clear();
     $this->managers->getManagerOf('Comments')->delete($request->getData('id'));
     
     $this->app->user()->setFlash('Le commentaire a bien été supprimé !');
@@ -44,6 +47,9 @@ class NewsController extends BackController
 
   public function executeInsert(HTTPRequest $request)
   {
+    $frontend_index_cache = Cache::CACHE_DIR.'/views/Frontend_News_index';
+    $this->cache()->delete($frontend_index_cache);
+
     $this->processForm($request);
 
     $this->page->addVar('title', 'Ajout d\'une news');
@@ -51,6 +57,15 @@ class NewsController extends BackController
 
   public function executeUpdate(HTTPRequest $request)
   {
+    // on supprime du cache les ressources concernées : la vue de l'index et la news:
+
+    $news_cache = Cache::CACHE_DIR.'/datas/news-'.$request->getData('id');
+    $frontend_index_cache = Cache::CACHE_DIR.'/views/Frontend_News_index';
+    
+    $this->cache()->delete($news_cache);
+    $this->cache()->delete($frontend_index_cache);
+
+    // le code reprend ici après la gestion du cache : 
     $this->processForm($request);
 
     $this->page->addVar('title', 'Modification d\'une news');
@@ -58,6 +73,7 @@ class NewsController extends BackController
 
   public function executeUpdateComment(HTTPRequest $request)
   {
+    $this->cache()->clear();
     $this->page->addVar('title', 'Modification d\'un commentaire');
 
     if ($request->method() == 'POST')

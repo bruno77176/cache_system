@@ -6,13 +6,14 @@ use \OCFram\HTTPRequest;
 use \Entity\Comment;
 use \FormBuilder\CommentFormBuilder;
 use \OCFram\FormHandler;
+use \OCFram\Cache;
  
 class NewsController extends BackController
 {
   public function executeIndex(HTTPRequest $request)
   {
 
-    $frontend_index_cache = 'C:/wamp64/www/monsiteenpoo/tmp/cache/views/Frontend_News_index';
+    $frontend_index_cache = Cache::CACHE_DIR.'/views/Frontend_News_index';
 
     if(!file_exists($frontend_index_cache))
     {
@@ -49,8 +50,8 @@ class NewsController extends BackController
  
   public function executeShow(HTTPRequest $request)
   {
-    $news_cache = 'C:/wamp64/www/monsiteenpoo/tmp/cache/datas/news-'.$request->getData('id');
-    $comments_cache = 'C:wamp64/www/monsiteenpoo/tmp/cache/datas/comments-'.$request->getData('id');
+    $news_cache = Cache::CACHE_DIR.'/datas/news-'.$request->getData('id');
+    $comments_cache = Cache::CACHE_DIR.'/datas/comments-newsId='.$request->getData('id');
 
     if(!file_exists($news_cache) || !file_exists($comments_cache))
     {
@@ -78,7 +79,10 @@ class NewsController extends BackController
  
   public function executeInsertComment(HTTPRequest $request)
   {
-    // Si le formulaire a été envoyé.
+    $comments_cache = Cache::CACHE_DIR.'datas/comments-newsId='.$request->getData('news');
+    
+    $this->cache()->delete($comments_cache);
+      // Si le formulaire a été envoyé.
     if ($request->method() == 'POST')
     {
       $comment = new Comment([
@@ -91,6 +95,7 @@ class NewsController extends BackController
     {
       $comment = new Comment;
     }
+      
  
     $formBuilder = new CommentFormBuilder($comment);
     $formBuilder->build();

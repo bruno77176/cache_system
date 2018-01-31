@@ -3,6 +3,8 @@ namespace OCFram;
 
 class Cache 
 {
+	const CACHE_DIR = 'C:/wamp64/www/monsiteenpoo/tmp/cache';
+
 	public function __construct($duration= null, $dirname = null)
 	{
 		$this->setDuration($duration);
@@ -20,7 +22,31 @@ class Cache
 
 	public function delete($file)
 	{
-		unlink($file);
+		if(file_exists($file))
+		{
+			unlink($file);
+		}
+		
+	}
+
+	public function clear() 
+	{
+
+		$views_cache = self::CACHE_DIR.'/views';
+		$datas_cache = self::CACHE_DIR.'/datas';
+
+		$datas = glob($datas_cache.'/*');
+		foreach($datas as $data)
+		{
+			unlink($data);
+		}
+
+		$views = glob($views_cache.'/*');
+		foreach($views as $view)
+		{
+			unlink($view);
+		}
+
 	}
 
 	public function duration()
@@ -35,3 +61,4 @@ class Cache
 	}
 
 }
+
