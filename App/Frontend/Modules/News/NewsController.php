@@ -50,6 +50,7 @@ class NewsController extends BackController
  
   public function executeShow(HTTPRequest $request)
   {
+    //gestion du cache
     $news_cache = Cache::CACHE_DIR.'/datas/news-'.$request->getData('id');
     $comments_cache = Cache::CACHE_DIR.'/datas/comments-newsId='.$request->getData('id');
 
@@ -60,8 +61,14 @@ class NewsController extends BackController
       $this->cache()->add($news_cache, $serialized_news);
 
       $comments = $this->managers->getManagerOf('Comments')->getListOf($news->id());
+      /*foreach($comments as $comment)
+      {
+        $serialized_comment = serialize($comment);
+        $comment_cache = Cache::CACHE_DIR.'/datas/comment-'.$comment['id'];
+        $this->cache()->add($comment_cache, $serialized_comment);
+      }*/
       $serialized_comments = serialize($comments);
-      $this->cache()->add($comments_cache, $serialized_comments);
+      $this->cache()->add($comments_cache, $serialized_comments);      
     }
     
     $news = unserialize($this->cache()->read($news_cache));
@@ -71,7 +78,7 @@ class NewsController extends BackController
     {
       $this->app->httpResponse()->redirect404();
     }
- 
+
     $this->page->addVar('title', $news->titre());
     $this->page->addVar('news', $news);
     $this->page->addVar('comments', $comments);
@@ -79,9 +86,11 @@ class NewsController extends BackController
  
   public function executeInsertComment(HTTPRequest $request)
   {
-    $comments_cache = Cache::CACHE_DIR.'datas/comments-newsId='.$request->getData('news');
-    
+
+    // suppression du cache de la ressource concernée : 
+    $comments_cache = Cache::CACHE_DIR.'/datas/comments-newsId='.$request->getData('news');
     $this->cache()->delete($comments_cache);
+    
       // Si le formulaire a été envoyé.
     if ($request->method() == 'POST')
     {
