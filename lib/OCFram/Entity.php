@@ -5,8 +5,8 @@ abstract class Entity implements \ArrayAccess
 {
   use Hydrator;
 
-  protected $erreurs = [],
-            $id;
+  protected $erreurs = [];
+  protected $id;
 
   public function __construct(array $donnees = [])
   {

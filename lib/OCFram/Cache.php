@@ -3,8 +3,6 @@ namespace OCFram;
 
 class Cache 
 {
-	
-	protected $expirationTime;
 
 	const EXPIRATION = 300; //en secondes.
 
@@ -28,19 +26,27 @@ class Cache
 		}
 		
 	}
-	
-	public function expirationTime()
+
+	public function isExpired($file)
 	{
-		return $this->expirationTime;
+	 	if(file_exists($file))
+	 	{
+	 		$lines = file($file);
+	 		$timestamp = (int)$lines[0];
+
+	 		if (time()>=$timestamp)
+	 		{
+	 			return true;
+	 		}
+	 	}
 	}
 
-	public function setExpirationTime($expirationTime)
+	public function setTimestamp($file)
 	{
-		if(is_int($expirationTime))
-		{
-			$this->expirationTime = $expirationTime;
-		}
-		
+		$fs = fopen($file, 'w');
+		$timestamp = time()+self::EXPIRATION;
+		fwrite($fs, $timestamp.PHP_EOL);
+		fclose($fs);
 	}
 
 }

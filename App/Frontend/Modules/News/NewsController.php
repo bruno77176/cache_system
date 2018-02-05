@@ -12,57 +12,28 @@ class NewsController extends BackController
 {
   public function executeIndex(HTTPRequest $request)
   {
-    //je vérifie que l'index n'a pas déjà été mis en cache, sinon je le mets en cache:
     
-    $frontend_index_cache = Cache::CACHE_DIR.'/views/Frontend_News_index';
-    if(file_exists($frontend_index_cache))
+    $nombreNews = $this->app->config()->get('nombre_news');
+    $nombreCaracteres = $this->app->config()->get('nombre_caracteres');
+ 
+    // On ajoute une définition pour le titre.
+    $this->page->addVar('title', 'Liste des '.$nombreNews.' dernières news');
+ 
+    // On récupère le manager des news.
+    $manager = $this->managers->getManagerOf('News');
+ 
+    $listeNews = $manager->getList(0, $nombreNews);
+    
+    foreach ($listeNews as $news)
     {
-      $lines = file($frontend_index_cache);
-      $timestamp = (int)$lines[0];
-
-      if(time()>= $timestamp)
+      if (strlen($news->contenu()) > $nombreCaracteres)
       {
-        $this->cache()->delete($frontend_index_cache);
+        $debut = substr($news->contenu(), 0, $nombreCaracteres);
+        $debut = substr($debut, 0, strrpos($debut, ' ')) . '...';
+ 
+        $news->setContenu($debut);
       }
     }
-    
-
-    if(!file_exists($frontend_index_cache))
-    {
-      $fs = fopen($frontend_index_cache, 'w');
-      $timestamp = time()+Cache::EXPIRATION;
-      fwrite($fs, $timestamp.PHP_EOL);
-      fclose($fs);
-
-      $nombreNews = $this->app->config()->get('nombre_news');
-      $nombreCaracteres = $this->app->config()->get('nombre_caracteres');
-   
-      // On ajoute une définition pour le titre.
-      $this->page->addVar('title', 'Liste des '.$nombreNews.' dernières news');
-   
-      // On récupère le manager des news.
-      $manager = $this->managers->getManagerOf('News');
-   
-      $listeNews = $manager->getList(0, $nombreNews);
-      
-      foreach ($listeNews as $news)
-      {
-        if (strlen($news->contenu()) > $nombreCaracteres)
-        {
-          $debut = substr($news->contenu(), 0, $nombreCaracteres);
-          $debut = substr($debut, 0, strrpos($debut, ' ')) . '...';
-   
-          $news->setContenu($debut);
-        }
-      }
-      $serialized_listeNews = serialize($listeNews);
-      $this->cache()->add($frontend_index_cache, $serialized_listeNews);
-      $lines = file($frontend_index_cache);
-      $timestamp = (int)$lines[0];
-      
-    }
-    $listeNews = unserialize($lines[1]);
-    //$listeNews = unserialize($this->cache()->read($frontend_index_cache));   
     
     // On ajoute la variable $listeNews à la vue.
     $this->page->addVar('listeNews', $listeNews);
@@ -70,29 +41,48 @@ class NewsController extends BackController
  
   public function executeShow(HTTPRequest $request)
   {
-    //gestion du cache
+    //on définit les fichiers de cache et on vérifie s'ils sont expirés, auquel cas on les supprime : 
     $news_cache = Cache::CACHE_DIR.'/datas/news-'.$request->getData('id');
     $comments_cache = Cache::CACHE_DIR.'/datas/comments-newsId='.$request->getData('id');
 
+    if($this->cache()->isExpired($news_cache))
+    {
+      $this->cache()->delete($news_cache);
+    }
+
+    if($this->cache()->isExpired($comments_cache))
+    {
+      $this->cache()->delete($comments_cache);
+    }
+
+    //si les fichiers cache n'existent pas il faut les créer, leur assigner un timestamp d'expiration et le contenu sérialisé issu de la requête : 
     if(!file_exists($news_cache) || !file_exists($comments_cache))
     {
+      $this->cache()->setTimestamp($news_cache);
+      $this->cache()->setTimestamp($comments_cache);
+
       $news = $this->managers->getManagerOf('News')->getUnique($request->getData('id'));
-      $serialized_news = serialize($news);
+
+      $serialized_news = base64_encode(serialize($news));
       $this->cache()->add($news_cache, $serialized_news);
 
       $comments = $this->managers->getManagerOf('Comments')->getListOf($news->id());
-      /*foreach($comments as $comment)
-      {
-        $serialized_comment = serialize($comment);
-        $comment_cache = Cache::CACHE_DIR.'/datas/comment-'.$comment['id'];
-        $this->cache()->add($comment_cache, $serialized_comment);
-      }*/
-      $serialized_comments = serialize($comments);
+      
+      $serialized_comments = base64_encode(serialize($comments));
       $this->cache()->add($comments_cache, $serialized_comments);      
     }
     
-    $news = unserialize($this->cache()->read($news_cache));
-    $comments = unserialize($this->cache()->read($comments_cache));
+    //j'ai utilisé ces méthodes pour désérialiser le contenu du cache, hors timestamp en 1ère ligne : 
+    $fs = fopen($news_cache, 'r');
+    $timestamp = fgets($fs);
+    $news = unserialize(base64_decode(fgets($fs)));
+    fclose($fs);
+
+    $fs = fopen($comments_cache, 'r');
+    $timestamp = fgets($fs);
+    $comments = unserialize(base64_decode(fgets($fs)));
+    fclose($fs);
+    
  
     if (empty($news))
     {

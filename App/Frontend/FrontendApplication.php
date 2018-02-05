@@ -17,20 +17,23 @@ class FrontendApplication extends Application
   {
     $controller = $this->getController();
 
-    if(!file_exists(Cache::CACHE_DIR.'/views/Frontend_News_index'))
+    //si on veut génerer l'index et que sa vue est en cache, on récupère le cache à ce moment là : 
+    if($controller->action() == 'index' && file_exists(Cache::CACHE_DIR.'/views/Frontend_News_index'))
     {
-      $controller->execute();
- 
+      // j'ai mis la commande $controller->execute() en commentaire car on n'a pas besoin d'executer le controlleur dans ce cas là!
+      // (et c'est spécifié dans l'énoncé...)
+      //$controller->execute();
       $this->httpResponse->setPage($controller->page());
       $this->httpResponse->send();
+      
     }
     else
     {
-      //on fera quelque chose de différent ici...
+      //dans le cas général, on doit executer le controleur.
       $controller->execute();
- 
       $this->httpResponse->setPage($controller->page());
       $this->httpResponse->send();
+
     }
     
   }

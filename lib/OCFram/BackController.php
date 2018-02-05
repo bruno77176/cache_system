@@ -1,6 +1,8 @@
 <?php
 namespace OCFram;
 
+use \OCFram\Cache;
+
 abstract class BackController extends ApplicationComponent
 {
   protected $action = '';
@@ -39,6 +41,8 @@ abstract class BackController extends ApplicationComponent
   {
     return $this->page;
   }
+  public function module(){ return $this->module; }
+  public function action(){ return $this->action; }
 
   public function setModule($module)
   {
@@ -69,7 +73,23 @@ abstract class BackController extends ApplicationComponent
 
     $this->view = $view;
 
-    $this->page->setContentFile(__DIR__.'/../../App/'.$this->app->name().'/Modules/'.$this->module.'/Views/'.$this->view.'.php');
+    // le contenu de la vue envoyé à l'objet Page sera issu du cache si celui ci est présent et pas expiré : 
+    $cache_view = Cache::CACHE_DIR.'/views/'.$this->app->name().'_'.$this->module().'_'.$this->action;
+
+    if(file_exists($cache_view) && !$this->cache()->isExpired($cache_view))
+    {
+      $this->page->setContentFile($cache_view);
+    }
+    else 
+    {  
+      // s'il est présent mais expiré, on le supprime : 
+      if($this->cache()->isExpired($cache_view))
+      {
+        $this->cache()->delete($cache_view);
+      }
+      //on fait appel à la vue s'il n'y a pas de cache ou si celui-ci est expiré : 
+      $this->page->setContentFile(__DIR__.'/../../App/'.$this->app->name().'/Modules/'.$this->module.'/Views/'.$this->view.'.php');
+    }
     
   }
 
